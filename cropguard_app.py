@@ -69,26 +69,49 @@ DISEASE_INFO = {
     "Tomato___Early_blight": {"remedy": ["Apply chlorothalonil", "Remove infected leaves", "Proper spacing"], "fertilizer": ["NPK 10-10-10", "Organic compost", "Calcium"]},
     "Tomato___Late_blight": {"remedy": ["Apply copper fungicide", "Destroy infected plants", "Avoid overhead water"], "fertilizer": ["NPK 5-10-10", "Increase potassium", "Reduce nitrogen"]},
     "Tomato___healthy": {"remedy": ["Monitor regularly", "Good practices", "Proper watering"], "fertilizer": ["NPK 10-10-10", "NPK 5-10-10 when flowering", "Regular compost"]},
+    "Tomato___Bacterial_spot": {"remedy": ["Apply copper bactericide", "Disease-free seeds", "Crop rotation"], "fertilizer": ["NPK 10-10-10", "Adequate calcium", "pH 6.0-6.8"]},
+    "Tomato___Leaf_Mold": {"remedy": ["Improve air circulation", "Reduce humidity", "Apply fungicides"], "fertilizer": ["NPK 10-10-10", "Avoid over-fertilization", "Balanced nutrition"]},
+    "Tomato___Septoria_leaf_spot": {"remedy": ["Remove infected leaves", "Apply fungicides", "Improve air circulation"], "fertilizer": ["NPK 10-10-10", "Add potassium", "Maintain soil moisture"]},
+    "Tomato___Target_Spot": {"remedy": ["Remove infected leaves", "Apply fungicides", "Improve air circulation"], "fertilizer": ["NPK 10-10-10", "Potassium for resistance", "Maintain moisture"]},
+    "Tomato___Spider_mites Two-spotted_spider_mite": {"remedy": ["Spray neem oil", "Increase humidity", "Remove infested leaves"], "fertilizer": ["NPK 19-19-19 early", "NPK 8-16-32 during fruit", "Calcium nitrate"]},
     "Potato___Early_blight": {"remedy": ["Remove lower leaves", "Apply copper fungicide", "Proper spacing"], "fertilizer": ["NPK 10-10-10", "Potassium", "Maintain moisture"]},
     "Potato___Late_blight": {"remedy": ["Apply metalaxyl", "Remove infected material", "Better circulation"], "fertilizer": ["NPK 5-10-10", "More potassium", "Less nitrogen"]},
     "Potato___healthy": {"remedy": ["Monitor pests", "Regular irrigation", "Remove weeds"], "fertilizer": ["NPK 10-10-10", "Add compost", "Sulfur if needed"]},
     "Apple___Apple_scab": {"remedy": ["Apply captan/sulfur", "Remove infected leaves", "Good air flow"], "fertilizer": ["NPK 10-10-10", "Add calcium", "Avoid excess nitrogen"]},
+    "Apple___Black_rot": {"remedy": ["Prune infected branches", "Apply copper fungicide", "Sanitize tools"], "fertilizer": ["NPK 5-10-10", "Increase potassium", "Add boron"]},
+    "Apple___Cedar_apple_rust": {"remedy": ["Remove infected leaves", "Apply fungicides", "Avoid overhead water"], "fertilizer": ["NPK 10-10-10", "Add sulfur", "Ensure drainage"]},
     "Apple___healthy": {"remedy": ["Keep monitoring", "Good practices", "Regular spraying"], "fertilizer": ["NPK 10-10-10", "Monthly feeding", "Spring compost"]},
     "Corn_(maize)___healthy": {"remedy": ["Watch pests", "Proper spacing", "Water regularly"], "fertilizer": ["NPK 20-10-10", "Side dress nitrogen", "Micronutrients"]},
-    "Grape___healthy": {"remedy": ["Regular pruning", "Monitor pests", "Remove dead wood"], "fertilizer": ["NPK 10-10-10", "Organic matter", "Sulfur if needed"]}
+    "Grape___healthy": {"remedy": ["Regular pruning", "Monitor pests", "Remove dead wood"], "fertilizer": ["NPK 10-10-10", "Organic matter", "Sulfur if needed"]},
+    "Blueberry___healthy": {"remedy": ["Monitor pests", "Maintain pruning", "Water regularly"], "fertilizer": ["Acidic NPK (pH 4.5-5.5)", "Peat moss", "Sulfur if needed"]},
+    "Peach___healthy": {"remedy": ["Monitor regularly", "Prune for circulation", "Remove dead branches"], "fertilizer": ["NPK 8-8-8", "Nitrogen in spring", "Compost"]},
+    "Pepper,_bell___healthy": {"remedy": ["Monitor regularly", "Proper watering", "Watch for pests"], "fertilizer": ["NPK 10-10-10", "Calcium", "Regular compost"]},
+    "Strawberry___healthy": {"remedy": ["Monitor regularly", "Remove runners", "Maintain spacing"], "fertilizer": ["NPK 10-10-10", "Compost", "Calcium for berries"]},
+    "Soybean___healthy": {"remedy": ["Monitor pests", "Proper spacing", "Regular watering"], "fertilizer": ["NPK 0-20-20", "Nitrogen fixation", "Micronutrients"]},
+    "Raspberry___healthy": {"remedy": ["Prune canes", "Monitor pests", "Maintain spacing"], "fertilizer": ["NPK 10-10-10", "Compost annually", "Good drainage"]}
 }
 
 DEFAULT_INFO = {"remedy": ["Consult expert", "Remove affected parts", "Proper spacing"], "fertilizer": ["Balanced NPK", "Organic matter", "Maintain pH"]}
 
-# Preprocess Image - FIXED FOR 128x128 FLATTENED
+# ========== UPDATED PREPROCESS FUNCTION - FOR CNN MODEL ==========
 def preprocess_image(image):
+    """Preprocess image for CNN model - UPDATED"""
     try:
+        # Convert to RGB
         if image.mode != 'RGB':
             image = image.convert('RGB')
-        img = image.resize((128, 128), Image.Resampling.LANCZOS)
+        
+        # Resize to 224x224 (CNN expects this)
+        img = image.resize((224, 224), Image.Resampling.LANCZOS)
+        
         img_array = np.array(img)
+        
+        # Normalize
         img_array = img_array.astype('float32') / 255.0
-        img_array = img_array.reshape(1, -1)  # Flatten to [1, 49152]
+        
+        # Add batch dimension ONLY - keep 4D shape [1, 224, 224, 3]
+        img_array = np.expand_dims(img_array, axis=0)
+        
         return img_array
     except Exception as e:
         st.error(f"Error: {str(e)}")
@@ -162,4 +185,4 @@ else:
     st.info("👆 Upload a leaf image!")
 
 st.markdown("---")
-st.markdown("""<div style="text-align:center;color:#666;font-size:12px;"><p>🌿 CropGuard AI</p><p style="font-size:11px;color:#999;">128x128 • Google Drive enabled</p></div>""", unsafe_allow_html=True)
+st.markdown("""<div style="text-align:center;color:#666;font-size:12px;"><p>🌿 CropGuard AI</p><p style="font-size:11px;color:#999;">224x224 CNN • Google Drive enabled</p></div>""", unsafe_allow_html=True)
