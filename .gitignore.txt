@@ -1,0 +1,8 @@
+# Don't upload these to GitHub
+*.h5
+*.tflite
+__pycache__/
+.streamlit/
+.DS_Store
+*.pyc
+model_cache/
