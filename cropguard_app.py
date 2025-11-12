@@ -96,7 +96,8 @@ st.markdown('<div class="header-title">🌿 CropGuard AI 🌿</div>', unsafe_all
 def load_model():
     try:
         model_path = r"1znEHh0QFjRQp_CihCu5CHQZKmCLwYU_p"
-        model = keras.models.load_model(model_path)
+        model = tf.keras.models.load_model(model_path, compile=False)
+
         return model
     except Exception as e:
         st.error(f"Error loading model: {str(e)}")
@@ -359,3 +360,4 @@ st.markdown("""
         <p style="font-size: 11px; color: #999;">Model expects 224x224 pixel images | Updated with improved preprocessing</p>
     </div>
 """, unsafe_allow_html=True)
+
