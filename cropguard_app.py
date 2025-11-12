@@ -6,6 +6,7 @@ import numpy as np
 import gdown
 import os
 
+# Page Configuration
 st.set_page_config(
     page_title="CropGuard AI - Plant Disease Detection",
     page_icon="🌿",
@@ -13,6 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# Styling
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
@@ -31,11 +33,12 @@ st.markdown("""
 
 st.markdown('<div class="header-title">🌿 CropGuard AI 🌿</div>', unsafe_allow_html=True)
 
+# Load Model
 @st.cache_resource
 def load_model():
     model_path = 'plant_disease_prediction_model.h5'
     if not os.path.exists(model_path):
-        st.info('📥 Downloading model... (~500MB)')
+        st.info('📥 Downloading model from Google Drive... (~500MB)')
         progress_bar = st.progress(0)
         try:
             file_id = '1znEHh0QFjRQp_CihCu5CHQZKmCLwYU_p'
@@ -55,41 +58,43 @@ def load_model():
         st.success('✅ Model loaded!')
         return model
     except Exception as e:
-        st.error(f'Error loading: {str(e)}')
+        st.error(f'Error: {str(e)}')
         return None
 
+# Class Names
 CLASS_NAMES = {0:"Apple___Apple_scab",1:"Apple___Black_rot",2:"Apple___Cedar_apple_rust",3:"Apple___healthy",4:"Blueberry___healthy",5:"Cherry_(including_sour)___Powdery_mildew",6:"Cherry_(including_sour)___healthy",7:"Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",8:"Corn_(maize)___Common_rust_",9:"Corn_(maize)___Northern_Leaf_Blight",10:"Corn_(maize)___healthy",11:"Grape___Black_rot",12:"Grape___Esca_(Black_Measles)",13:"Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",14:"Grape___healthy",15:"Orange___Haunglongbing_(Citrus_greening)",16:"Peach___Bacterial_spot",17:"Peach___healthy",18:"Pepper,_bell___Bacterial_spot",19:"Pepper,_bell___healthy",20:"Potato___Early_blight",21:"Potato___Late_blight",22:"Potato___healthy",23:"Raspberry___healthy",24:"Soybean___healthy",25:"Squash___Powdery_mildew",26:"Strawberry___Leaf_scorch",27:"Strawberry___healthy",28:"Tomato___Bacterial_spot",29:"Tomato___Early_blight",30:"Tomato___Late_blight",31:"Tomato___Leaf_Mold",32:"Tomato___Septoria_leaf_spot",33:"Tomato___Spider_mites Two-spotted_spider_mite",34:"Tomato___Target_Spot",35:"Tomato___Tomato_Yellow_Leaf_Curl_Virus",36:"Tomato___Tomato_mosaic_virus",37:"Tomato___healthy"}
 
+# Disease Info
 DISEASE_INFO = {
-    "Tomato___Early_blight": {"remedy": ["Apply chlorothalonil fungicide", "Remove infected leaves", "Proper spacing"], "fertilizer": ["NPK 10-10-10", "Add compost", "Apply calcium"]},
-    "Tomato___Late_blight": {"remedy": ["Apply copper fungicide", "Remove infected plants", "Avoid overhead water"], "fertilizer": ["NPK 5-10-10", "Increase potassium", "Reduce nitrogen"]},
-    "Tomato___healthy": {"remedy": ["Continue monitoring", "Good practices", "Regular watering"], "fertilizer": ["NPK 10-10-10", "Switch to 5-10-10 when flowering", "Add compost"]},
-    "Potato___Early_blight": {"remedy": ["Remove infected leaves", "Apply copper fungicide", "Proper spacing"], "fertilizer": ["NPK 10-10-10", "Add potassium", "Maintain moisture"]},
+    "Tomato___Early_blight": {"remedy": ["Apply chlorothalonil", "Remove infected leaves", "Proper spacing"], "fertilizer": ["NPK 10-10-10", "Organic compost", "Calcium"]},
+    "Tomato___Late_blight": {"remedy": ["Apply copper fungicide", "Destroy infected plants", "Avoid overhead water"], "fertilizer": ["NPK 5-10-10", "Increase potassium", "Reduce nitrogen"]},
+    "Tomato___healthy": {"remedy": ["Monitor regularly", "Good practices", "Proper watering"], "fertilizer": ["NPK 10-10-10", "NPK 5-10-10 when flowering", "Regular compost"]},
+    "Potato___Early_blight": {"remedy": ["Remove lower leaves", "Apply copper fungicide", "Proper spacing"], "fertilizer": ["NPK 10-10-10", "Potassium", "Maintain moisture"]},
     "Potato___Late_blight": {"remedy": ["Apply metalaxyl", "Remove infected material", "Better circulation"], "fertilizer": ["NPK 5-10-10", "More potassium", "Less nitrogen"]},
-    "Potato___healthy": {"remedy": ["Monitor pests", "Regular irrigation", "Remove weeds"], "fertilizer": ["NPK 10-10-10", "Add compost", "Apply sulfur if needed"]},
-    "Apple___Apple_scab": {"remedy": ["Apply captan or sulfur", "Remove infected leaves", "Good air flow"], "fertilizer": ["NPK 10-10-10", "Add calcium", "Avoid excess nitrogen"]},
+    "Potato___healthy": {"remedy": ["Monitor pests", "Regular irrigation", "Remove weeds"], "fertilizer": ["NPK 10-10-10", "Add compost", "Sulfur if needed"]},
+    "Apple___Apple_scab": {"remedy": ["Apply captan/sulfur", "Remove infected leaves", "Good air flow"], "fertilizer": ["NPK 10-10-10", "Add calcium", "Avoid excess nitrogen"]},
     "Apple___healthy": {"remedy": ["Keep monitoring", "Good practices", "Regular spraying"], "fertilizer": ["NPK 10-10-10", "Monthly feeding", "Spring compost"]},
-    "Corn_(maize)___healthy": {"remedy": ["Watch for pests", "Proper spacing", "Water regularly"], "fertilizer": ["NPK 20-10-10", "Side dress nitrogen", "Add micronutrients"]},
+    "Corn_(maize)___healthy": {"remedy": ["Watch pests", "Proper spacing", "Water regularly"], "fertilizer": ["NPK 20-10-10", "Side dress nitrogen", "Micronutrients"]},
     "Grape___healthy": {"remedy": ["Regular pruning", "Monitor pests", "Remove dead wood"], "fertilizer": ["NPK 10-10-10", "Organic matter", "Sulfur if needed"]}
 }
 
 DEFAULT_INFO = {"remedy": ["Consult expert", "Remove affected parts", "Proper spacing"], "fertilizer": ["Balanced NPK", "Organic matter", "Maintain pH"]}
 
+# Preprocess Image - FIXED FOR 128x128 FLATTENED
 def preprocess_image(image):
     try:
-        img = image.resize((128, 128))
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        img = image.resize((128, 128), Image.Resampling.LANCZOS)
         img_array = np.array(img)
-        if len(img_array.shape) == 2:
-            img_array = np.stack([img_array] * 3, axis=-1)
-        elif img_array.shape[2] == 4:
-            img_array = img_array[:, :, :3]
         img_array = img_array.astype('float32') / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
+        img_array = img_array.reshape(1, -1)  # Flatten to [1, 49152]
         return img_array
     except Exception as e:
-        st.error(f"Preprocessing error: {str(e)}")
+        st.error(f"Error: {str(e)}")
         return None
 
+# Predict Disease
 def predict_disease(model, image):
     try:
         processed_image = preprocess_image(image)
@@ -103,6 +108,7 @@ def predict_disease(model, image):
     except Exception as e:
         raise Exception(f"Prediction failed: {str(e)}")
 
+# Main UI
 st.markdown("### Upload Leaf Image")
 
 uploaded_file = st.file_uploader("Drag and drop", type=['png','jpg','jpeg','webp'], label_visibility="collapsed")
@@ -152,9 +158,8 @@ if uploaded_file:
     except Exception as e:
         st.error(f"Error: {str(e)}")
 else:
-    st.markdown("""<div class="upload-box"><h3>☁️ Drag and drop here</h3><p style="color:#666;font-size:14px;">Max 20MB • PNG, JPG, JPEG, WEBP</p></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="upload-box"><h3>☁️ Drag and drop here</h3><p style="color:#666;font-size:14px;">PNG, JPG, JPEG, WEBP</p></div>""", unsafe_allow_html=True)
     st.info("👆 Upload a leaf image!")
 
 st.markdown("---")
-st.markdown("""<div style="text-align:center;color:#666;font-size:12px;"><p>🌿 CropGuard AI</p><p style="font-size:11px;color:#999;">256x256 images • Google Drive enabled</p></div>""", unsafe_allow_html=True)
-
+st.markdown("""<div style="text-align:center;color:#666;font-size:12px;"><p>🌿 CropGuard AI</p><p style="font-size:11px;color:#999;">128x128 • Google Drive enabled</p></div>""", unsafe_allow_html=True)
