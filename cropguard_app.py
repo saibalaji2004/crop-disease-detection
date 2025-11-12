@@ -77,7 +77,7 @@ DEFAULT_INFO = {"remedy": ["Consult expert", "Remove affected parts", "Proper sp
 
 def preprocess_image(image):
     try:
-        img = image.resize((256, 256))
+        img = image.resize((128, 128))
         img_array = np.array(img)
         if len(img_array.shape) == 2:
             img_array = np.stack([img_array] * 3, axis=-1)
@@ -157,3 +157,4 @@ else:
 
 st.markdown("---")
 st.markdown("""<div style="text-align:center;color:#666;font-size:12px;"><p>🌿 CropGuard AI</p><p style="font-size:11px;color:#999;">256x256 images • Google Drive enabled</p></div>""", unsafe_allow_html=True)
+
