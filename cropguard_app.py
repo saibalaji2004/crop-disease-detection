@@ -3,6 +3,8 @@ import tensorflow as tf
 from tensorflow import keras
 from PIL import Image
 import numpy as np
+import gdown
+import os
 
 # Page configuration
 st.set_page_config(
@@ -91,20 +93,49 @@ st.markdown("""
 # Title with icons
 st.markdown('<div class="header-title">🌿 CropGuard AI 🌿</div>', unsafe_allow_html=True)
 
-# Load model
+# Load model with Google Drive support
 @st.cache_resource
 def load_model():
+    """Load model from Google Drive"""
+    model_path = 'plant_disease_prediction_model.h5'
+    
+    # Check if model exists locally
+    if not os.path.exists(model_path):
+        st.info('📥 Downloading model from Google Drive... (first time only, ~500MB)')
+        progress_bar = st.progress(0)
+        
+        try:
+            # Your Google Drive File ID
+            file_id = '1znEHh0QFjRQp_CihCu5CHQZKmCLwYU_p'
+            url = f'https://drive.google.com/uc?id={file_id}&export=download&confirm=t'
+            
+            # Download with progress
+            output = gdown.download(url, model_path, quiet=False)
+            progress_bar.progress(100)
+            
+            if output:
+                st.success('✅ Model downloaded successfully!')
+            else:
+                st.error('❌ Download failed. Please check the Google Drive link.')
+                return None
+                
+        except Exception as e:
+            st.error(f'❌ Error downloading model: {str(e)}')
+            st.info('💡 Make sure the Google Drive file is set to "Anyone with the link can view"')
+            return None
+    
+    # Load the model
     try:
-        model_path = r"1znEHh0QFjRQp_CihCu5CHQZKmCLwYU_p"
-        model = tf.keras.models.load_model(model_path, compile=False)
-
+        # Load with compile=False for TensorFlow 2.20.0 compatibility
+        model = keras.models.load_model(model_path, compile=False)
+        st.success('✅ Model loaded successfully!')
         return model
     except Exception as e:
-        st.error(f"Error loading model: {str(e)}")
-        st.info("Please ensure the model file exists at the specified path.")
+        st.error(f'❌ Error loading model: {str(e)}')
+        st.info('💡 Model file might be corrupted. Try deleting it and redownloading.')
         return None
 
-# Class names mapping - UPDATE THIS BASED ON YOUR MODEL'S CLASSES
+# Class names mapping
 CLASS_NAMES = {
     0: "Apple___Apple_scab",
     1: "Apple___Black_rot",
@@ -146,7 +177,7 @@ CLASS_NAMES = {
     37: "Tomato___healthy"
 }
 
-# Disease information database - EXPAND THIS WITH YOUR OWN DATA
+# Disease information database
 DISEASE_INFO = {
     "Apple___Apple_scab": {
         "remedy": ["Apply fungicides containing captan or sulfur", "Remove infected leaves promptly", "Ensure good air circulation around trees"],
@@ -218,17 +249,17 @@ DEFAULT_INFO = {
 
 def preprocess_image(image):
     """Preprocess the image for model prediction"""
-    # CHANGED FROM 128x128 TO 224x224 - MATCH YOUR MODEL'S INPUT SIZE
+    # Resize to match model input (224x224)
     img = image.resize((224, 224))  
     img_array = np.array(img)
     
     # Handle grayscale images - convert to RGB
     if len(img_array.shape) == 2:
         img_array = np.stack([img_array] * 3, axis=-1)
-    elif img_array.shape[2] == 4:  # RGBA
+    elif img_array.shape == 4:  # RGBA
         img_array = img_array[:, :, :3]
     
-    # Normalize
+    # Normalize pixel values to [0, 1]
     img_array = img_array / 255.0
     
     # Add batch dimension
@@ -240,11 +271,11 @@ def predict_disease(model, image):
     try:
         processed_image = preprocess_image(image)
         predictions = model.predict(processed_image, verbose=0)
-        predicted_class = np.argmax(predictions[0])
-        confidence = float(predictions[0][predicted_class]) * 100
+        predicted_class = np.argmax(predictions)
+        confidence = float(predictions[predicted_class]) * 100
         
         disease_name = CLASS_NAMES.get(predicted_class, "Unknown Disease")
-        return disease_name, confidence, predictions[0]
+        return disease_name, confidence, predictions
     except Exception as e:
         raise Exception(f"Prediction failed: {str(e)}")
 
@@ -273,7 +304,7 @@ if uploaded_file is not None:
         with col2:
             st.write(f"**Filename:** {uploaded_file.name}")
             st.write(f"**Size:** {uploaded_file.size / 1024:.2f} KB")
-            st.write(f"**Dimensions:** {image.size[0]} x {image.size[1]} px")
+            st.write(f"**Dimensions:** {image.size} x {image.size} px")
         
         # Analyze button
         st.markdown('<div class="analyze-button">', unsafe_allow_html=True)
@@ -290,8 +321,8 @@ if uploaded_file is not None:
                         
                         # Extract plant name and disease
                         parts = disease_name.split("___")
-                        plant_name = parts[0].replace("_", " ")
-                        disease = parts[1].replace("_", " ") if len(parts) > 1 else "Unknown"
+                        plant_name = parts.replace("_", " ")
+                        disease = parts.replace("_", " ") if len(parts) > 1 else "Unknown"
                         
                         # Display diagnosis
                         st.markdown(f"""
@@ -323,7 +354,7 @@ if uploaded_file is not None:
                         for fertilizer in info["fertilizer"]:
                             st.markdown(f"• {fertilizer}")
                         
-                        # Optional: Show top 3 predictions
+                        # Show top 3 predictions
                         st.markdown("---")
                         st.markdown("### 📊 Other Possible Predictions:")
                         
@@ -336,7 +367,7 @@ if uploaded_file is not None:
                         
                     except Exception as e:
                         st.error(f"❌ Error during prediction: {str(e)}")
-                        st.info("💡 Make sure the image size matches your model's expected input (224x224)")
+                        st.info("💡 Make sure the image is clear and properly formatted")
             else:
                 st.error("❌ Model could not be loaded. Please check the model path.")
     except Exception as e:
@@ -357,7 +388,6 @@ st.markdown("---")
 st.markdown("""
     <div style="text-align: center; color: #666; font-size: 12px;">
         <p>🌿 CropGuard AI - Protecting your crops with artificial intelligence</p>
-        <p style="font-size: 11px; color: #999;">Model expects 224x224 pixel images | Updated with improved preprocessing</p>
+        <p style="font-size: 11px; color: #999;">Model expects 224x224 pixel images • Google Drive integration enabled</p>
     </div>
 """, unsafe_allow_html=True)
-
